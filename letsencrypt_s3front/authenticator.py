@@ -30,6 +30,8 @@ class Authenticator(common.Plugin):
             help="Bucket referenced by CloudFront distribution")
         add("s3-region", default="us-east-1",
             help="Bucket region name")
+        add("s3-path", default="",
+            help="Path to app")
 
     def __init__(self, *args, **kwargs):
         super(Authenticator, self).__init__(*args, **kwargs)
@@ -56,8 +58,9 @@ class Authenticator(common.Plugin):
         # then run simple http verification
         response, validation = achall.response_and_validation()
         s3 = boto3.resource('s3', region_name=self.conf('s3-region'))
+        challenge_path = self.conf('s3-path')+achall.chall.path[1:]
 
-        s3.Bucket(self.conf('s3-bucket')).put_object(Key=achall.chall.path[1:],
+        s3.Bucket(self.conf('s3-bucket')).put_object(Key=challenge_path,
                                                      Body=validation,
                                                      ACL='public-read')
 
@@ -75,5 +78,6 @@ class Authenticator(common.Plugin):
         s3 = boto3.resource('s3', region_name=self.conf('s3-region'))
         client = s3.meta.client
         for achall in achalls:
-            client.delete_object(Bucket=self.conf('s3-bucket'), Key=achall.chall.path[1:])
+            challenge_path = self.conf('s3-path')+achall.chall.path[1:]
+            client.delete_object(Bucket=self.conf('s3-bucket'), Key=challenge_path)
         return None
